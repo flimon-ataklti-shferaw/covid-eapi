@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<sub-flow name="get-covid-case-reports-by-state" doc:id="bb86e58e-80b1-4a11-8149-fb212a8c4f95" >
+		<logger level="DEBUG" doc:name="Before Backend Call" doc:id="332fb1dc-bc04-4797-b7db-ac0dc8997c48" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "Before get reports uhub sapi service call"' />
+		<http:request method="GET" doc:name="Get Covid Case By NationalID" doc:id="00778e11-faed-4f81-a1d3-b82792a7a706" config-ref="HTTP_UHUB_SAPI_Request_configuration" path="/${secure::ehub.sapi.subpath.reports}">
+			<http:headers><![CDATA[#[vars.uhubHeaderParameters]]]></http:headers>
+			<http:query-params ><![CDATA[#[{
+	"state": vars.state
+}]]]></http:query-params>
+			<http:response-validator>
+				<http:success-status-code-validator values="200,404" />
+			</http:response-validator>
+		</http:request>
+		<logger level="DEBUG" doc:name="After Backend Call" doc:id="7c1c8010-86b3-4436-a9e7-160957206cb8" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: "After get reports uhub sapi service call"' />
+	</sub-flow>
+</mule>

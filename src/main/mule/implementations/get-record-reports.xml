@@ -1,32 +1,77 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="
-http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
-	   <flow name="get:\reports:covid-eapi-config">
-        <ee:transform>
-            <ee:message>
-                <ee:set-payload><![CDATA[%dw 2.0
-output application/json
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<flow name="get:\reports:covid-eapi-config">
+		<ee:transform doc:name="Set Variables" doc:id="ec1768cb-821e-4122-b0f1-dbff0a26747a" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="state" ><![CDATA[attributes.queryParams.state default ""]]></ee:set-variable>
+				<ee:set-variable variableName="acceptType" ><![CDATA[attributes.headers.Accept]]></ee:set-variable>
+				<ee:set-variable variableName="correlationId" ><![CDATA[attributes.headers.'x-correlation-id' default ""]]></ee:set-variable>
+				<ee:set-variable variableName="uhubHeaderParameters" ><![CDATA[%dw 2.0
+output application/java
 ---
 {
-  reports: [
-    {
-      state: "texas",
-      report: {
-        total: 46744,
-        positive: 436744,
-        recovered: 433744,
-        death: 300,
-        vaccinated: 7847848
-      }
-    }
-  ]
+	"client_id": Mule::p('ehub.sapi.client_id'),
+	"client_secret": Mule::p('ehub.sapi.client_secret'),
+	"x-transaction-id": vars.transactionId,
+	"x-correlation-id": attributes.headers.'x-correlation-id' default ""
+}]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<logger level="INFO" doc:name="Start Log" doc:id="a617df34-ce36-4f42-87cf-800ea02511e1" message='transactionId: #[vars.transactionId]], correlationId: #[vars.correlationId], message: Started get reports flow and received query parameter is - #[attributes.queryParams.state]"'/>
+		<flow-ref doc:name="get-covid-case-reports-by-state" doc:id="7b70b0e9-be32-4fee-9dfe-89278d9ed52d" name="get-covid-case-reports-by-state"/>
+		<choice doc:name="Choice" doc:id="01af4ba3-7b11-4ed2-bf70-722614d79374" >
+			<when expression='#[vars.acceptType == "application/xml"]'>
+				<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:name="Set XML Response">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	reports: payload map {
+		"state": $.state,
+		"report": {
+			"total": $.reports.total default 0,
+			"positive": $.reports.positive default 0,
+			"recovered": $.reports.recovered default 0,
+			"death": $.reports.death default 0,
+			"vaccinated": $.reports.vaccinated default 0
+		}
+	}
 }]]></ee:set-payload>
             </ee:message>
         </ee:transform>
-    </flow>
-	
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Set JSON Response" doc:id="2b64c55e-dc2e-4814-bf56-93340a4e76cc" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	reports: payload map {
+		"state": $.state,
+		"report": {
+			"total": $.reports.total default 0,
+			"positive": $.reports.positive default 0,
+			"recovered": $.reports.recovered default 0,
+			"death": $.reports.death default 0,
+			"vaccinated": $.reports.vaccinated default 0
+		}
+	}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="End Log" doc:id="3d6567d6-d341-4524-8c2c-f66398be07c8" message='transactionID: #[vars.transactionId]], correlationID: #[vars.correlationID], message: Completed get reports flow, payload: #[payload]"' />
+    
+</flow>
 	</mule>
